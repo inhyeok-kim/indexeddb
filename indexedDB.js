@@ -11,7 +11,7 @@ if(!window.indexedDB){
 
 function openDB(){ // DB 초기화
     log('open DB....');
-    let req = indexedDB.open(DB_NAME,DB_VERSION); // DB 접근 요청
+    const req = indexedDB.open(DB_NAME,DB_VERSION); // DB 접근 요청
 
     req.onerror = function(e){ // 에러 발생
         console.error("openDb:", e.target.errorCode);
@@ -33,7 +33,13 @@ function openDB(){ // DB 초기화
     }
 }
 
-function log(message){
+function getObjectStore(store_name, mode) { // 테이블에대한 트랜잭션을 얻는다.
+    const tx = db.transaction(store_name, mode);
+    return tx.objectStore(store_name);
+}
+
+
+function log(message){ // 로그찍기
     if(runType == 'dev'){
         console.log(message);
     }
