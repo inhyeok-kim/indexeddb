@@ -1,14 +1,23 @@
+// 공통부
+
 var runType = "dev"; // dev || prod
 const DB_NAME = "crud";
 const DB_VERSION = '1';
 var db;
+const tables = {
+    people : "people",
+}
+const Mode = {
+    read : "readonly",
+    edit : "readwrite",
+}
 
 if(!window.indexedDB){
     alert("Sorry, Your Browser didn't support IndexedDB.");
     window.close();
     history.back();
 }
-
+openDB();
 function openDB(){ // DB 초기화
     log('open DB....');
     const req = indexedDB.open(DB_NAME,DB_VERSION); // DB 접근 요청
@@ -20,6 +29,7 @@ function openDB(){ // DB 초기화
     req.onsuccess = function(e){ // DB 로드
         db = this.result; 
         log("openDb DONE");
+        getPeople();
     };
 
     req.onupgradeneeded = function(e){ // DB 생성 또는 업데이트
@@ -33,7 +43,7 @@ function openDB(){ // DB 초기화
     }
 }
 
-function getObjectStore(store_name, mode) { // 테이블에대한 트랜잭션을 얻는다.
+function getObjectStore(store_name, mode) { // 테이블에대한 스토어를 얻는다.
     const tx = db.transaction(store_name, mode);
     return tx.objectStore(store_name);
 }
@@ -44,3 +54,68 @@ function log(message){ // 로그찍기
         console.log(message);
     }
 }
+function error(message){
+    if(runType =='dev'){
+        console.error(message);
+    }
+}
+
+// 공통부 끝
+
+// DAO
+function getPeople(){
+    const store = getObjectStore(tables.people, Mode.read);
+    const req = store.openCursor();
+
+    req.onsuccess = function(e){
+        const cursor = e.target.result;
+        if(cursor){
+            console.log(cursor.key, cursor.value);
+            cursor.continue();
+        }
+    }
+}
+
+function deletePerson(id){
+
+}
+
+function updatePerson(person){
+
+}
+
+function addPerson({name, age, gender, telNum}){
+    const store = getObjectStore(tables.people, Mode.edit);
+    const newPerson = {name : name, age : age, gender :gender, telNum:telNum};
+    let req;
+    console.log(newPerson);
+    try {
+        req = store.add(newPerson);
+    } catch (e) {
+        console.error(e);
+    }
+
+    req.onerror = function(){
+        console.error(this.error);
+    }
+
+    req.onsuccess = function(e){
+        log('add successed');
+        getPeople();
+    }
+}
+
+// DAO 끝
+
+// Service 
+function insertPerson(){
+    const form = document.getElementById('form');
+    const person = {
+        name : form.name.value,
+        age : form.age.value,
+        gender : form.gender.value,
+        telNum : form.telNum.value
+    }
+    addPerson(person);
+}
+// Service 끝
