@@ -29,16 +29,16 @@ function openDB(){ // DB 초기화
     req.onsuccess = function(e){ // DB 로드
         db = this.result; 
         log("openDb DONE");
-        getPeople();
+        selectPeople();
     };
 
     req.onupgradeneeded = function(e){ // DB 생성 또는 업데이트
         log("openDb.onupgradeneeded");
+        
         var store = e.currentTarget.result.createObjectStore('people', { keyPath: 'id', autoIncrement: true }); // 자동 key값 옵션 true
   
         store.createIndex('telNum', 'telNum', { unique: true }); // 인덱스 생성, 이건 유일하다. // 컬럼 생성하는거라고 보면 될듯??
         store.createIndex('name', 'name', { unique: false }); // 인덱스 생성
-        store.createIndex('year', 'year', { unique: false }); // 인덱스 생성
         store.createIndex('gender', 'gender', { unique: false }); // 인덱스 생성
     }
 }
@@ -64,58 +64,85 @@ function error(message){
 
 // DAO
 function getPeople(){
-    const store = getObjectStore(tables.people, Mode.read);
-    const req = store.openCursor();
-
-    req.onsuccess = function(e){
-        const cursor = e.target.result;
-        if(cursor){
-            console.log(cursor.key, cursor.value);
-            cursor.continue();
+    return new Promise(function(resolve, reject){
+        const store = getObjectStore(tables.people, Mode.read);
+        const req = store.openCursor();
+        let result = [];
+        req.onsuccess = function(e){
+            const cursor = e.target.result;
+            if(cursor){
+                result.push(cursor.value);
+                cursor.continue();
+            } else {
+                resolve(result);
+            }
+    
         }
-    }
+    });
 }
 
-function deletePerson(id){
+function getPerson(id){
+    return new Promise(function(resolve, reject){
+        const store = getObjectStore(tables.people, Mode.read);
+        const req = store.get(id);
+        req.onsuccess = function(e){
+            const result = e.target.result;
+            resolve(result);
+        }
+    });
+}
 
+function removePerson(id){
+    return new Promise(function(res, rej){
+        const store = getObjectStore(tables.people, Mode.edit);
+        const req = store.delete(id);
+        req.onsuccess = function(e){
+            res(true);
+        }
+    });
 }
 
 function updatePerson(person){
+    return new Promise(function(res, rej){
+        const store = getObjectStore(tables.people, Mode.edit);
+        const req = store.get(Number(person.id));
+        req.onsuccess = function(event){
+            let data = event.target.result;
+            data.name=person.name;
+            data.age=person.age;
+            data.gender=person.gender;
+            data.telNum=person.telNum;
+            const updReq = store.put(data);
+            updReq.onsuccess = function(){
+                res(true);
+            }
+        }
 
+
+    });
 }
 
 function addPerson({name, age, gender, telNum}){
-    const store = getObjectStore(tables.people, Mode.edit);
-    const newPerson = {name : name, age : age, gender :gender, telNum:telNum};
-    let req;
-    console.log(newPerson);
-    try {
-        req = store.add(newPerson);
-    } catch (e) {
-        console.error(e);
-    }
-
-    req.onerror = function(){
-        console.error(this.error);
-    }
-
-    req.onsuccess = function(e){
-        log('add successed');
-        getPeople();
-    }
+    return new Promise(function(resolve, reject){
+        const store = getObjectStore(tables.people, Mode.edit);
+        const newPerson = {name : name, age : age, gender :gender, telNum:telNum};
+        let req;
+    
+        try {
+            req = store.add(newPerson);
+        } catch (e) {
+            console.error(e);
+        }
+    
+        req.onerror = function(){
+            console.error(this.error);
+        }
+    
+        req.onsuccess = function(e){
+            log('add successed');
+            resolve(true);
+        }
+    });
 }
 
 // DAO 끝
-
-// Service 
-function insertPerson(){
-    const form = document.getElementById('form');
-    const person = {
-        name : form.name.value,
-        age : form.age.value,
-        gender : form.gender.value,
-        telNum : form.telNum.value
-    }
-    addPerson(person);
-}
-// Service 끝

@@ -15,7 +15,7 @@
         </ul>
     </div>
     <div class="box">
-      <form id="form">
+      <form id="form" onsubmit="return false">
         이름 : <input type="text" name="name" id="name">
         <br/>
         나이 : <input type="number" name="age" id="age">
@@ -25,10 +25,104 @@
         <br/>
         전화번호 : <input type="text" name="telNum" id="telNum">
         <br/>
+        <button onclick="insertPerson()">등록</button>
       </form>
-      <button onclick="insertPerson()">등록</button>
     </div>
 
     <script src="/indexedDB.js"></script>
+    <script>
+
+      
+      async function insertPerson(){
+        const form = document.getElementById('form');
+        const person = {
+          name : form.name.value,
+          age : form.age.value,
+          gender : form.gender.value,
+          telNum : form.telNum.value
+        }
+        if(await addPerson(person)){
+          selectPeople();
+        }
+      }
+
+      async function deletePerson(id){
+        removePerson(id).then(function(){
+          selectPeople();
+        });
+      }
+
+      async function selectPeople(){
+        const people = await getPeople();
+        const ul = document.getElementById('people_list');
+        ul.innerHTML = "";
+        people.forEach(person =>{
+          const li = document.createElement('li');
+          li.innerText = `${person.name} / ${person.age} / ${person.gender} / ${person.telNum} `;
+          const buttm = document.createElement('button');
+          buttm.innerText = 'delete';
+          buttm.onclick = ()=>{deletePerson(person.id)};
+          const buttm2 = document.createElement('button');
+          buttm2.innerText = 'update';
+          buttm2.onclick = ()=>{updateView(person.id)};
+          li.append(buttm2);
+          li.append(buttm);
+          ul.append(li);
+        });
+      }
+
+      async function updateView(id){
+        const form = document.getElementById('form');
+        const person = await getPerson(id);
+        const html = `
+        <input type="hidden" name="id" value="${person.id}">
+          이름 : <input type="text" name="name" id="name" value="${person.name}">
+          <br/>
+          나이 : <input type="number" name="age" id="age"  value="${person.age}">
+          <br/>
+          성별 : <input type="radio" name="gender" value="W" ${person.gender == 'W' ? 'selected' : ''} id="gender"> 여자
+          <input type="radio" name="gender" value="M" ${person.gender == 'M' ? 'selected' : ''} id="gender"> 남자
+          <br/>
+          전화번호 : <input type="text" name="telNum" id="telNum"  value="${person.telNum}">
+          <br/>
+          <button onclick="modifyPerson()">수정</button>
+          <button onclick="registView()">취소</button>
+        `;
+        form.innerHTML = html;
+      }
+
+      async function modifyPerson(){
+        const form = document.getElementById('form');
+        const person = {
+          name : form.name.value,
+          age : form.age.value,
+          gender : form.gender.value,
+          telNum : form.telNum.value,
+          id : form.id.value
+        }
+        const result = await updatePerson(person);
+        if(result){
+          selectPeople();
+          registView();
+        }
+      }
+
+      function registView(){
+        const form = document.getElementById('form');
+        const html = `
+          이름 : <input type="text" name="name" id="name">
+          <br/>
+          나이 : <input type="number" name="age" id="age">
+          <br/>
+          성별 : <input type="radio" name="gender" value="W" id="gender"> 여자
+          <input type="radio" name="gender" value="M" id="gender"> 남자
+          <br/>
+          전화번호 : <input type="text" name="telNum" id="telNum">
+          <br/>
+          <button onclick="insertPerson()">등록</button>
+        `;
+        form.innerHTML = html;
+      }
+    </script>
 </body>
 </html>
